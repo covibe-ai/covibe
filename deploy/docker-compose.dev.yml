@@ -1,0 +1,34 @@
+# Covibe 开发模式 — 覆盖 production compose 的本地开发配置
+# 使用: docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up
+
+services:
+  happy-server:
+    build:
+      target: builder
+    volumes:
+      - ../covibe-happy/packages/happy-server/sources:/repo/packages/happy-server/sources
+      - ../covibe-happy/packages/happy-wire/src:/repo/packages/happy-wire/src
+    environment:
+      NODE_ENV: development
+    command: ["sh", "-c", "cd /repo/packages/happy-server && npx tsx sources/standalone.ts migrate && npx tsx sources/standalone.ts serve"]
+
+  covibe-server:
+    volumes:
+      - ../covibe-server:/app
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_LOG_LEVEL: DEBUG
+    command: >
+      sh -c "
+        python3 manage.py migrate &&
+        python3 manage.py runserver 0.0.0.0:8080
+      "
+
+  covibe-worker:
+    volumes:
+      - ../covibe-server:/app
+    command: ["celery", "worker", "-l", "DEBUG"]
+
+  covibe-beat:
+    volumes:
+      - ../covibe-server:/app
