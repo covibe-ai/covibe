@@ -10,6 +10,6 @@
 [submodule "covibe-server"]
 	path = covibe-server
 	url = git@github.com:covibe-ai/covibe-server.git
-[submodule "covibe-web"]
-	path = covibe-web
-	url = git@github.com:covibe-ai/covibe-web.git
+[submodule "covibe-dashboard"]
+	path = covibe-dashboard
+	url = git@github.com:covibe-ai/covibe-dashboard.git
