@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  happy-server:
+    build:
+      context: ../covibe-happy
+      dockerfile: packages/happy-server/Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      - HANDY_MASTER_SECRET=${HANDY_MASTER_SECRET}
+      - PORT=3005
+      - DATABASE_URL=postgresql://covibe:${DB_PASSWORD}@db:5432/covibe
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - happy-data:/data
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ../covibe-dashboard
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://covibe:covibe@db:5432/covibe
+      - HAPPY_SERVER_URL=http://happy-server:3005
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=covibe
+      - POSTGRES_PASSWORD=covibe
+      - POSTGRES_DB=covibe
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U covibe"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  happy-data:

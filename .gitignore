@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+node_modules/
+dist/
+*.pyc
+__pycache__/
+*.egg-info/
+target/               # Rust builds (covibe-desktop)
+.env.local
+
+# Logs
+*.log

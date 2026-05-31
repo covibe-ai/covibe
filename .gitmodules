@@ -1,0 +1,12 @@
+[submodule "covibe-dashboard"]
+	path = covibe-dashboard
+	url = git@github.com:covibe-ai/covibe-dashboard.git
+[submodule "covibe-desktop"]
+	path = covibe-desktop
+	url = git@github.com:covibe-ai/covibe-desktop.git
+[submodule "covibe-app"]
+	path = covibe-app
+	url = git@github.com:covibe-ai/covibe-app.git
+[submodule "covibe-happy"]
+	path = covibe-happy
+	url = git@github.com:covibe-ai/covibe-happy.git
