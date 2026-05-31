@@ -70,6 +70,8 @@ services:
     restart: unless-stopped
     networks:
       - covibe-net
+    # Override default CMD (PGlite) to use external PostgreSQL
+    command: ["sh", "-c", "cd /repo/packages/happy-server && ../../node_modules/.bin/tsx sources/main.ts"]
     # 依赖 Redis pub/sub 做 Socket.IO 集群
 
   # ─── Covibe Server (Django API + Admin) ───
