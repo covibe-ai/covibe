@@ -80,12 +80,12 @@ OIDC 第三方登录。
   "email": "user@example.com",
   "nickname": "User",
   "avatar": "",
-  "oidc_sub": "google-12345",
   "has_key": true,
   "effective_max_sessions": 5,
   "effective_max_workspaces": 3,
   "effective_idle_minutes": 60,
-  "tier": { "name": "专业版", "expired_at": "2026-06-30T00:00:00Z" },
+  "tier_name": "专业版",
+  "tier_display": { "name": "专业版", "expired_at": "2026-06-30T00:00:00Z" },
   "date_joined": "2026-01-01T00:00:00Z"
 }
 ```

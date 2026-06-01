@@ -27,12 +27,12 @@ Covibe 是一个 Vibecoding 远程控制 SaaS 平台。后端基于 Django + DRF
 1. 创建自定义 User 模型替换 `auth.User`（`AUTH_USER_MODEL = 'account.User'`）
 2. User 模型包含：
    - 基础字段：email, nickname, avatar
-   - OIDC 字段：`oidc_sub`（唯一）、`oidc_issuer`、`oidc_provider`
-   - 会员字段：`tier`（关联会员等级）、`vip_expires_at`
+   - 社交登录字段已移至 SocialLogin 表：`provider` + `sub`（一对多，一个用户可以有多个社交账号）
+   - 会员字段已移至 Subscription 模型：通过 `extend_or_create()` 管理，不再直接挂在 User 上
    - 自定义字段：`max_sessions_override`（覆盖等级默认值，null 表示用等级的）、`max_workspaces_override`
 3. 自定义 UserAdmin（Unfold 主题）
 4. OIDC 认证后端（`mozilla-django-oidc` 或自实现）：
-   - 用户通过第三方 OIDC 登录后，根据 `sub` 查找或创建 User
+   - 用户通过第三方 OIDC 登录后，根据 `sub` 查找或创建 SocialLogin → 关联到 User
    - 根用户 `root` 密码 `rootroot`，通过 `python manage.py createsuperuser` 创建
 5. 迁移 `account_weixinuser` 外键指向新的 User 模型
 
@@ -87,7 +87,7 @@ wechat/ 模块已从模板继承。需要：
 1. 确保 `wechat/models.py`, `wechat/api.py`, `wechat/views.py` 能正常工作
 2. Constance 配置中填好微信支付参数（模板已有，字段齐全）
 3. 实现 `wechat.api.create_native_pay(order)` 生成二维码支付链接
-4. 实现支付回调 webhook：`/api/v1/wechat/pay/notify`
+4. 实现支付回调 webhook：`/covibe_api/v1/wechat/pay/notify`
 5. 关联 `Order.make_paid()` 和 `member` 的履约逻辑
 
 ## 开发要求
@@ -101,11 +101,11 @@ wechat/ 模块已从模板继承。需要：
 ## API 设计
 
 ```
-POST /api/v1/auth/oidc/login   — OIDC 登录
-GET  /api/v1/users/me           — 当前用户信息（含 tier 和配额）
-GET  /api/v1/tiers              — 会员等级列表
-POST /api/v1/orders/membership  — 创建会员购买订单
-POST /api/v1/wechat/pay/notify  — 微信支付回调
+POST /covibe_api/v1/auth/oidc/login   — OIDC 登录
+GET  /covibe_api/v1/users/me           — 当前用户信息（含 tier 和配额）
+GET  /covibe_api/v1/tiers              — 会员等级列表
+POST /covibe_api/v1/orders/membership  — 创建会员购买订单
+POST /covibe_api/v1/wechat/pay/notify  — 微信支付回调
 
 /admin/* — Unfold 后台管理（管理员用）
 ```
@@ -114,7 +114,7 @@ POST /api/v1/wechat/pay/notify  — 微信支付回调
 
 covibe-server 和 happy-server 共享同一个 PostgreSQL 数据库：
 - `happy-server` 的表（accounts, sessions, session_messages, machines）直接可用
-- covibe-server 的 Django User 通过 `oidc_sub` 与 happy-server 的 Account 关联
+- covibe-server 的 Django User 通过 SocialLogin（provider + sub）与 happy-server 的 Account 关联
 - 配额拦截：创建 session 前检查 `User.max_sessions`
 
 ## 快速启动
