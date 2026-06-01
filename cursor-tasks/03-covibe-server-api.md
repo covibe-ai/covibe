@@ -2,139 +2,120 @@
 
 ## 背景
 
-covibe-server 需要暴露 RESTful API 供 covibe-web（前端）和 covibe-app（手机）调用。  
+covibe-server 需要暴露 RESTful API 供 covibe-dashboard（前端）和 covibe-desktop（桌面客户端）调用。  
 部分请求需要转发到 Happy Server，部分由 Django 直接处理。
 
 ## API 前缀
 
 - **业务 API**: `/covibe_api/v1/*`（由 covibe-server 处理）  
-- **Happy API 代理**: `/v1/*`（由反代/covibe-server 转发到 happy-server，happy 原生使用 `/v1/` 前缀）  
+- **Happy API 代理**: `/v1/*`（由反代转发到 happy-server，happy 原生使用 `/v1/` 前缀）  
 - **Admin**: `/admin/*`（Unfold 后台，管理员用）
 
-## 已完成
+## 当前状态
+
+### 已完成
 
 - [x] DRF 已配置（`covibe_server/settings/rest_framework.py`）
 - [x] SimpleJWT 已配置（`covibe_server/settings/simplejwt.py`）
-- [x] `covibe_server/api_urls.py` 已初始化（nested routers）
+- [x] `covibe_server/api_urls.py` — 路由注册（orders + wechat payments）
 
-## 待完成
+### 实际 API 端点
 
-### 任务 1：认证 API
-
-**OIDC 登录流程：**
+以下是当前代码中**实际注册**的 API 路由：
 
 ```
-客户端 → POST /covibe_api/v1/auth/oidc/login
-           { id_token, provider: "google"|"github"|... }
-         → 验证 OIDC token（验证 iss, aud, sub）
-         → 查找或创建 SocialLogin（关联 User）
-         → 返回 JWT token（SimpleJWT）
+# 订单
+POST   /covibe_api/v1/orders/                             — 创建通用订单
+GET    /covibe_api/v1/orders/                             — 订单列表
+GET    /covibe_api/v1/orders/{uuid}/                      — 订单详情
+POST   /covibe_api/v1/orders/{uuid}/pay/wechat/prepay/    — 微信预支付
+POST   /covibe_api/v1/orders/{uuid}/check_payment/        — 查单
+POST   /covibe_api/v1/orders/{uuid}/refunds/              — 退款（501 未实现）
 
-客户端 → POST /covibe_api/v1/auth/token/refresh
-           { refresh }
-         → 刷新 JWT
-
-客户端 → GET /covibe_api/v1/users/me
-         → 返回用户信息 + tier 等级 + 当前可用配额
+# 微信支付回调
+POST   /covibe_api/v1/payments/wechat/pay/notify/         — 微信支付回调
+POST   /covibe_api/v1/payments/wechat/refund/notify/      — 微信退款回调
 ```
 
-**实现：**
-- `account/serializers.py` — UserSerializer, LoginSerializer
-- `account/views.py` — OIDCLoginView, UserMeView
-- `account/urls.py` — 注册路由
-- DRF 权限：`IsAuthenticated` 用于需要登录的接口
+### 未实现（待开发）
 
-### 任务 2：会员与配额 API
+以下 API 在文档中已设计但**尚未实现**：
 
 ```
-GET  /covibe_api/v1/tiers              → 返回所有会员等级和价格
-POST /covibe_api/v1/orders/membership  → 创建会员购买订单
-  Body: { tier_id }
-  → 计算折抵金额 → 创建 Order + OrderItem
-  → 返回 Order（含 amount_minor）
+# 认证
+POST /covibe_api/v1/auth/oidc/login      — OIDC 第三方登录
+POST /covibe_api/v1/auth/token/refresh   — 刷新 JWT
+GET  /covibe_api/v1/users/me             — 当前用户信息
+
+# Workspace
+GET    /covibe_api/v1/workspaces           — 获取用户 workspace 列表
+POST   /covibe_api/v1/workspaces           — 创建 workspace
+PATCH  /covibe_api/v1/workspaces/:uuid     — 更新 workspace
+DELETE /covibe_api/v1/workspaces/:uuid     — 删除 workspace
+
+# Machine
+POST /covibe_api/v1/machines/register          — 注册本机
+GET  /covibe_api/v1/machines                   — 机器列表
+GET  /covibe_api/v1/machines/:uuid/directories — 列出目录
+
+# 会员
+GET  /covibe_api/v1/tiers              — 会员等级列表
+POST /covibe_api/v1/orders/membership  — 创建会员购买订单
+
+# Session
+GET /covibe_api/v1/sessions/count — Session 配额查询
 ```
 
-**配额检查（关键逻辑）：**  
-happy-server 创建 session 之前，covibe-server 需要拦截检查：
+### 认证实现说明
 
-```
-检查流程：
-  1. 查 User 的会员等级（或自定义覆盖）
-  2. 查当前活跃 session 数（通过 happy-server 的 Session 表，count WHERE active=true）
-  3. 如果 >= max_sessions → 拒绝
-  4. 如果 < max_sessions → 放行
-```
+当前项目**尚未实现** auth API endpoints：
+- 没有 `account/views.py`（不存在）
+- 没有 `account/urls.py`（不存在）
+- 没有 OIDC 登录视图
+- 没有用户信息接口
 
-### 任务 3：微信支付 API
+**UserSerializer** 已定义（`account/serializers.py`），包含 `tier` 字段（返回 dict: name + expired_at）。
 
-wechat/ 模块已有模板代码，需要确认：
+### 微信支付 API
 
-```
-POST /covibe_api/v1/wechat/pay/native    → 创建 Native 支付二维码
-  Body: { order_id }
-  → 调用微信支付 API → 返回 code_url（二维码内容）
-
-POST /covibe_api/v1/wechat/pay/notify    → 微信支付回调（反向代理暴露到公网）
-  → 验签 → 更新订单 → 触发履约
-```
-
-### 任务 4：Happy Server 集成
-
-**共享数据库：**  
-covibe-server 和 happy-server 共用同一个 PostgreSQL。  
-Django 可以直接操作 happy-server 的表（通过 `db_table` 映射或用 raw SQL）：
+`wechat/views.py` 实现了支付回调处理：
 
 ```python
-# 代理：通过 Django 的数据库连接查询 happy-server 的 Session 表
-from django.db import connection
-with connection.cursor() as cursor:
-    cursor.execute("SELECT count(*) FROM \"Session\" WHERE \"accountId\" = %s AND active = true", [user.oidc_sub or user.email])
-    active_sessions = cursor.fetchone()[0]
+POST /covibe_api/v1/payments/wechat/pay/notify/     → WechatPayNotifyView
+POST /covibe_api/v1/payments/wechat/refund/notify/  → WechatRefundNotifyView
 ```
 
-**JWT 兼容：**  
-covibe-server 签发的 JWT 需要被 happy-server 的 Bearer token 验证接受。  
-有两种方案：
+路由通过 `covibe_server/api_urls.py` → `wechat/urls.py` 注册。
 
-| 方案 | 做法 |
-|------|------|
-| **A: 共享密钥** | covibe-server 跟 happy-server 共用一个 HMAC secret |
-| **B: 双验证** | happy-server 加 preHandler 支持两种 token |
-
-**推荐方案 A** — covibe-server 用跟 happy-server 同样的 `HANDY_MASTER_SECRET` 签发 token，
-确保格式兼容。
-
-### 任务 5：URL 路由配置
+### URL 路由配置
 
 ```python
-# covibe_server/urls.py 最终结构
+# covibe_server/urls.py 实际结构
 urlpatterns = [
+    path('healthcheck/', healthcheck, name='healthcheck'),
     path('admin/', admin.site.urls),
-    path('covibe_api/v1/auth/', include('account.urls')),
-    path('covibe_api/v1/', include('api_urls')),  # ViewSets
-    path('v1/', include('happy_proxy.urls')),  # 转发到 happy-server（happy 使用原生 /v1/ 前缀）
+    path('covibe_api/v1/', include(api_urlpatterns)),  # ViewSets + wechat callbacks
 ]
 ```
 
-## 开发顺序
+### Happy Server 集成
 
-1. 先实现 OIDC 登录 + JWT（任务 1）
-2. 再实现会员 API（任务 2）
-3. 再集成微信支付（任务 3）
-4. 最后集成 Happy Server（任务 4）
+两款服务共享 PostgreSQL 数据库：
+- covibe-server 的 Django User 通过 SocialLogin（provider + sub）与 happy-server 的 Account 关联
+- **未实现** JWT 共享签发（需要统一 `HANDY_MASTER_SECRET`）
+- **未实现** session 配额拦截
+
+## 开发顺序（剩余）
+
+1. [ ] 认证 API（OIDC 登录 + JWT）
+2. [ ] 会员 API（tiers, membership orders）
+3. [ ] Workspace API
+4. [ ] Machine API
+5. [ ] Happy Server JWT 集成
 
 ## 测试
 
 ```bash
 # 启动开发服务器
 uv run python manage.py runserver
-
-# 测试 OIDC 登录
-curl -X POST http://localhost:8000/covibe_api/v1/auth/oidc/login \
-  -H "Content-Type: application/json" \
-  -d '{"id_token": "...", "provider": "google"}'
-
-# 测试需要认证的接口（带上 JWT）
-curl http://localhost:8000/covibe_api/v1/users/me \
-  -H "Authorization: Bearer ***"
 ```

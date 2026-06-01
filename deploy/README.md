@@ -4,8 +4,8 @@
 
 ```
                       ┌──────────────┐
-                      │   Nginx 80   │ ← 反向代理 + 静态文件
-                      │  (server)    │
+                      │  Nginx 80    │ ← 反向代理 + 静态文件
+                      │  (in server) │
                       └──────┬───────┘
                              │
                ┌─────────────┼─────────────┐
@@ -22,6 +22,7 @@
          │ covibe-   │      │ happy-    │
          │ server    │      │ server    │
          │ (Django)  │      │ (:3005)   │
+         │ + Nginx   │      │           │
          └─────┬─────┘      └─────┬─────┘
                │                  │
          ┌─────┴──────────────────┴─────┐
@@ -33,12 +34,14 @@
                └─────────┘
 ```
 
+> 注意：Nginx 和 Daphne 都运行在 `covibe-server` 容器内。Nginx 监听 80 端口，反向代理到 Daphne (8080) 和 happy-server (3005)。
+
 ## 快速启动
 
 ```bash
 # 1. 复制环境变量并修改
 cp deploy/.env.example .env
-# 填入 HANDY_MASTER_SECRET, DJANGO_SECRET_KEY, DB_PASSWORD, ROOT_PASSWORD
+# 填入 HANDY_MASTER_SECRET, DJANGO_SECRET_KEY, ROOT_PASSWORD
 
 # 2. 开发模式（热重载）
 docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up
@@ -56,21 +59,25 @@ docker compose -f deploy/docker-compose.yml logs -f
 |------|------|------|
 | **nginx** (in covibe-server) | 80 | 反向代理 + 静态文件 + dashboard |
 | **happy-server** | 3005 | Socket.IO 实时通信 + Session CRUD |
-| **Daphne** (in covibe-server) | 8080 | Django ASGI (内部) |
-| **Celery Flower** | 8081 | Celery 监控面板 |
+| **Daphne** (in covibe-server) | 8080 | Django ASGI (内部，仅 nginx 可见) |
+| **Celery Worker** | - | 异步任务执行 |
+| **Celery Beat** | - | 定时任务调度 |
 | **PostgreSQL** | 5432 | 数据库 |
 | **Redis** | 6379 | 缓存 + 消息队列 |
 
+> 注意：Celery Flower 监控面板当前未在 docker-compose 中配置。
+
 ## 环境变量
 
-| 变量 | 必需 | 说明 |
-|------|------|------|
-| `HANDY_MASTER_SECRET` | ✅ | Happy Server 主密钥（任何字符串） |
-| `DJANGO_SECRET_KEY` | ✅ | Django 密钥 |
-| `ROOT_PASSWORD` | ✅ | 管理员密码 |
-| `DB_PASSWORD` | ❌ | 数据库密码（默认 covibe） |
-| `DJANGO_ALLOWED_HOSTS` | ❌ | 允许的域名 |
-| `CORS_ALLOWED_ORIGINS` | ❌ | 跨域来源 |
+| 变量 | 必需 | 说明 | 默认值 |
+|------|------|------|--------|
+| `HANDY_MASTER_SECRET` | ✅ | Happy Server 主密钥（任何字符串） | - |
+| `DJANGO_SECRET_KEY` | ✅ | Django 密钥 | - |
+| `ROOT_PASSWORD` | ✅ | 管理员密码 | - |
+| `DB_PASSWORD` | ❌ | 数据库密码 | covibe |
+| `DJANGO_ALLOWED_HOSTS` | ❌ | 允许的域名 | localhost,api.covibe.ai |
+| `CORS_ALLOWED_ORIGINS` | ❌ | 跨域来源 | https://covibe.ai,https://dashboard.covibe.ai |
+| `SUPERUSER_EMAIL` | ❌ | 超级管理员邮箱 | (见 .env.example) |
 
 ## 扩展方案
 
