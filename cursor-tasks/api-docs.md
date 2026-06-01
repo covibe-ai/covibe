@@ -6,8 +6,8 @@ Covibe 由两个服务提供 API：
 
 | 服务 | 基础 URL | 职责 | 协议 |
 |------|---------|------|------|
-| **covibe-server** | `https://api.covibe.ai/api/v1` | OAuth、用户、Workspace、Machine、会员、配额 | HTTP REST (DRF) |
-| **happy-server** | `https://api.covibe.ai/happy-api/v1` | Session CRUD、消息存储、Machine 心跳 | HTTP + WebSocket |
+| **happy-server** | `/v1/*`, `/v2/*`, `/v3/*` | Session/消息/Machine（上游原生） | HTTP + WebSocket |
+| **covibe-server** | `/covibe_api/v1/*` | Workspace/会员/用户/OAuth | HTTP REST (DRF) |
 
 ---
 
@@ -265,9 +265,9 @@ GET /api/v1/machines/mac_001/directories?path=/Users
 
 Happy-server 的原生 API，大部分被 covibe-server 代理拦截。这里列出桌面端和 App 直接需要的。
 
-### 2.1 Session
+### 2.1 Session（原生）
 
-#### POST /happy-api/v1/sessions
+#### POST /v1/sessions
 创建 session（通常由 happy CLI 调用，配额检查由 covibe-server 在代理层处理）。
 
 ```json
@@ -293,7 +293,7 @@ Happy-server 的原生 API，大部分被 covibe-server 代理拦截。这里列
 }
 ```
 
-#### GET /happy-api/v1/sessions
+#### GET /v1/sessions
 获取用户所有 session。
 
 ```json
@@ -309,7 +309,7 @@ Covibe 有**三个不同作用域**的 WebSocket 连接，各有不同的认证�
 
 ### 3.1 Machine WebSocket（covibe-desktop → happy-server）
 
-**连接地址：** `wss://api.covibe.ai/happy-api/v1/updates?token=<bearer>`
+**连接地址：** `wss://api.covibe.ai/v1/updates?token=<bearer>`
 
 **认证方式：** Query param `token` + Socket.IO auth `{ machineId }`
 
