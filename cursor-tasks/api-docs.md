@@ -197,42 +197,71 @@ GET /covibe_api/v1/sessions/count
 
 ## 二、happy-server HTTP API
 
-Happy-server 的原生 API，大部分被 covibe-server 代理拦截。这里列出桌面端和 App 直接需要的。
+Happy-server 的原生 API，covibe-server 不拦截，直接透传。
 
-### 2.1 Session（原生）
+### 2.1 完整路由列表
 
-#### POST /v1/sessions
-创建 session（通常由 happy CLI 调用，配额检查由 covibe-server 在代理层处理）。
-
-```json
-// Request
-{
-  "tag": "uuid",
-  "metadata": "<base64 加密>",
-  "agentState": "<base64 加密>",
-  "dataEncryptionKey": "<base64 加密>"
-}
-
-// Response 200
-{
-  "session": {
-    "id": "sess_001",
-    "tag": "uuid",
-    "metadata": "<base64 加密>",
-    "metadataVersion": 1,
-    "agentState": "<base64 加密>",
-    "active": true,
-    "lastActiveAt": "2026-01-15T10:00:00Z"
-  }
-}
-```
-
-#### GET /v1/sessions
-获取用户所有 session。
-
----
-
-## 三、WebSocket 接口
+| 模块 | 方法 | 路由 | 说明 |
+|------|------|------|------|
+| Auth | POST | `/v1/auth` | 公钥签名 → Bearer Token |
+| Auth | POST | `/v1/auth/request` | 发起配对请求 |
+| Auth | GET | `/v1/auth/request/status` | 查询配对状态 |
+| Auth | POST | `/v1/auth/response` | 批准配对 |
+| Auth | POST | `/v1/auth/account/request` | 账号配对请求 |
+| Auth | POST | `/v1/auth/account/response` | 账号配对批准 |
+| Session | GET | `/v1/sessions` | 会话列表 |
+| Session | POST | `/v1/sessions` | 创建会话 |
+| Session | GET | `/v2/sessions` | v2 会话列表 |
+| Session | GET | `/v2/sessions/active` | v2 活跃会话 |
+| Session | GET | `/v1/sessions/:id/messages` | 历史消息 |
+| Session | POST | `/v1/sessions/:id/archive` | 归档会话 |
+| Session | DELETE | `/v1/sessions/:id` | 删除会话 |
+| Session | POST | `/v3/sessions/:id/messages` | v3 消息协议 |
+| Session | POST | `/v1/sessions/:id/push-event` | 推送事件 |
+| Attachment | POST | `/v1/sessions/:id/attachments/request-upload` | 请求上传 |
+| Attachment | PUT | `/v1/sessions/:id/attachments/:file` | 上传文件 |
+| Attachment | GET | `/v1/sessions/:id/attachments/:file` | 下载文件 |
+| Machine | POST | `/v1/machines` | 注册机器 |
+| Machine | GET | `/v1/machines` | 机器列表 |
+| Machine | GET | `/v1/machines/:id` | 机器详情 |
+| Machine | DELETE | `/v1/machines/:id` | 删除机器 |
+| Artifact | GET | `/v1/artifacts` | 工件列表 |
+| Artifact | POST | `/v1/artifacts` | 创建工件 |
+| Artifact | GET | `/v1/artifacts/:id` | 工件详情 |
+| Artifact | POST | `/v1/artifacts/:id` | 更新工件 |
+| Artifact | DELETE | `/v1/artifacts/:id` | 删除工件 |
+| KV | GET | `/v1/kv/:key` | 读取 KV |
+| KV | GET | `/v1/kv` | KV 列表 |
+| KV | POST | `/v1/kv` | 写入 KV |
+| KV | POST | `/v1/kv/bulk` | 批量写入 |
+| Connect | GET | `/v1/connect/github/params` | GitHub OAuth 参数 |
+| Connect | GET | `/v1/connect/github/callback` | GitHub OAuth 回调 |
+| Connect | POST | `/v1/connect/github/webhook` | GitHub Webhook |
+| Connect | DELETE | `/v1/connect/github` | 断开 GitHub |
+| Connect | POST | `/v1/connect/:vendor/register` | 注册 AI vendor token |
+| Connect | GET | `/v1/connect/:vendor/token` | 读取 vendor token |
+| Connect | DELETE | `/v1/connect/:vendor` | 删除 vendor token |
+| Connect | GET | `/v1/connect/tokens` | 所有已连接 vendor |
+| Account | GET | `/v1/account/profile` | 个人资料 |
+| Account | GET | `/v1/account/settings` | 读取设置 |
+| Account | POST | `/v1/account/settings` | 更新设置 |
+| User | GET | `/v1/user/:id` | 用户信息 |
+| User | GET | `/v1/user/search` | 搜索用户 |
+| Push | POST | `/v1/push-tokens` | 注册推送 Token |
+| Push | DELETE | `/v1/push-tokens/:token` | 注销推送 Token |
+| Push | GET | `/v1/push-tokens` | 推送 Token 列表 |
+| Feed | GET | `/v1/feed` | 社交信息流 |
+| Friends | POST | `/v1/friends/add` | 添加好友 |
+| Friends | POST | `/v1/friends/remove` | 删除好友 |
+| Friends | GET | `/v1/friends` | 好友列表 |
+| Voice | GET | `/v1/voice/conversations` | 语音会话列表 |
+| Voice | GET | `/v1/voice/usage` | 语音用量 |
+| AccessKey | POST | `/v1/access-keys/:sessionId/:machineId` | 创建访问密钥 |
+| AccessKey | GET | `/v1/access-keys/:sessionId/:machineId` | 读取访问密钥 |
+| AccessKey | DELETE | `/v1/access-keys/:sessionId/:machineId` | 删除访问密钥 |
+| Version | POST | `/v1/version` | 版本检查 |
+| Usage | GET | `/v1/usage/query` | 用量查询 |
+| Health | GET | `/health` | 健康检查 |
 
 Covibe 有**三个不同作用域**的 WebSocket 连接，各有不同的认证和目的。
 
