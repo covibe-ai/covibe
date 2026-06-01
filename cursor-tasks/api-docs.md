@@ -20,7 +20,7 @@ Authorization: Bearer <access_token>
 
 ### 1.1 认证
 
-#### POST /api/v1/auth/oidc/login
+#### POST /covibe_api/v1/auth/oidc/login
 OIDC 第三方登录。
 
 ```json
@@ -43,7 +43,7 @@ OIDC 第三方登录。
 { "error": "Invalid token" }
 ```
 
-#### POST /api/v1/auth/token/refresh
+#### POST /covibe_api/v1/auth/token/refresh
 刷新 access token。
 
 ```json
@@ -54,7 +54,7 @@ OIDC 第三方登录。
 { "access": "eyJ..." }
 ```
 
-#### POST /api/v1/auth/register-key
+#### POST /covibe_api/v1/auth/register-key
 注册用户的加密密钥对。
 
 ```json
@@ -70,7 +70,7 @@ OIDC 第三方登录。
 { "success": true }
 ```
 
-#### GET /api/v1/users/me
+#### GET /covibe_api/v1/users/me
 获取当前用户信息。
 
 ```json
@@ -92,7 +92,7 @@ OIDC 第三方登录。
 
 ### 1.2 Workspace
 
-#### GET /api/v1/workspaces
+#### GET /covibe_api/v1/workspaces
 获取用户所有 workspace。
 
 ```json
@@ -110,7 +110,7 @@ OIDC 第三方登录。
 }]
 ```
 
-#### POST /api/v1/workspaces
+#### POST /covibe_api/v1/workspaces
 创建 workspace。
 
 ```json
@@ -128,7 +128,7 @@ OIDC 第三方登录。
 { "uuid": "wks_002", ... }
 ```
 
-#### PATCH /api/v1/workspaces/:uuid
+#### PATCH /covibe_api/v1/workspaces/:uuid
 更新 workspace。
 
 ```json
@@ -139,7 +139,7 @@ OIDC 第三方登录。
 { "uuid": "wks_001", ... }
 ```
 
-#### DELETE /api/v1/workspaces/:uuid
+#### DELETE /covibe_api/v1/workspaces/:uuid
 删除 workspace（同时通知关联 machine 关闭 session）。
 
 ```json
@@ -149,7 +149,7 @@ OIDC 第三方登录。
 
 ### 1.3 Machine
 
-#### POST /api/v1/machines/register
+#### POST /covibe_api/v1/machines/register
 注册/更新本机信息（由 covibe-desktop 调用）。
 
 ```json
@@ -178,7 +178,7 @@ OIDC 第三方登录。
 }
 ```
 
-#### GET /api/v1/machines
+#### GET /covibe_api/v1/machines
 获取用户的机器列表（含在线状态）。
 
 ```json
@@ -195,13 +195,13 @@ OIDC 第三方登录。
 }]
 ```
 
-#### GET /api/v1/machines/:uuid/directories
+#### GET /covibe_api/v1/machines/:uuid/directories
 列出机器某目录下的内容（用于 workspace 设置时选择目录）。
 需要目标 machine 在线，通过 RPC 转发到该机器执行 `ls`。
 
 ```json
 // Query
-GET /api/v1/machines/mac_001/directories?path=/Users
+GET /covibe_api/v1/machines/mac_001/directories?path=/Users
 
 // Response 200
 {
@@ -215,7 +215,7 @@ GET /api/v1/machines/mac_001/directories?path=/Users
 
 ### 1.4 Session 配额管理
 
-#### GET /api/v1/sessions/count
+#### GET /covibe_api/v1/sessions/count
 ```json
 // Response
 { "active": 2, "max": 5, "pct": 40 }
@@ -223,7 +223,7 @@ GET /api/v1/machines/mac_001/directories?path=/Users
 
 ### 1.5 会员
 
-#### GET /api/v1/tiers
+#### GET /covibe_api/v1/tiers
 会员等级列表。
 
 ```json
@@ -242,7 +242,7 @@ GET /api/v1/machines/mac_001/directories?path=/Users
 }]
 ```
 
-#### POST /api/v1/orders/membership
+#### POST /covibe_api/v1/orders/membership
 创建会员购买订单。
 
 ```json
